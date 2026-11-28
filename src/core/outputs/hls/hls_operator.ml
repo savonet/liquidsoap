@@ -30,6 +30,10 @@ let check_tags value tags =
 
 let seconds ticks = Frame.seconds_of_main ticks
 
+(* spec/operator.md §4: media time after which the initial offset is set
+   from the variants that produced packets. *)
+let max_offset_wait = 10.
+
 let parse_fields value =
   let meths, _ = Lang.split_meths value in
   let get name f = Option.map f (List.assoc_opt name meths) in
@@ -319,6 +323,9 @@ class output p =
     val mutable life = Asleep
     val mutable main = `Due
     val mutable pending_metadata = None
+
+    (* Whether this run's variants share their timestamp offset yet. *)
+    val mutable offset_set = false
     val tag_cut = Atomic.make `None
     method private self_sync = (Lang.to_source source_val)#cached_self_sync
     method variants = variants
@@ -822,6 +829,7 @@ class output p =
         | Awake ({ runs; _ } as l) -> life <- Awake { l with runs = runs + 1 }
         | Asleep | Restore_failed -> ());
       main <- `Due;
+      offset_set <- false;
       state <- `Running
 
     method private start =
@@ -842,6 +850,7 @@ class output p =
       Fun.protect
         ~finally:(fun () -> stopping <- false)
         (fun () ->
+          if running && not offset_set then self#settle_final_offset;
           List.iter
             (fun v ->
               match v.Variant.run with
@@ -1024,11 +1033,61 @@ class output p =
                 variants)
         pieces
 
+    (* spec/operator.md §4.1: one offset for every variant, the largest
+       initial delay, so that the same media time has the same timestamp in
+       each and none is negative. *)
+    method private settle_offset ?(final = false) ~force () =
+      let delays =
+        List.map
+          (fun v ->
+            (v, (Option.get v.Variant.run).encoder.initial_delay ~final ()))
+          variants
+      in
+      let partial =
+        List.filter_map
+          (function
+            | v, `Partial _ -> Some v.Variant.name | _, `Known _ -> None)
+          delays
+      in
+      if partial = [] || force then (
+        if partial <> [] then
+          self#log#important
+            "Variants %s have not all produced a packet: setting the initial \
+             offset from what they produced so far"
+            (String.concat ", " partial);
+        let offset =
+          List.fold_left
+            (fun m (_, (`Known d | `Partial d)) -> max m d)
+            0 delays
+        in
+        offset_set <- true;
+        List.iter
+          (fun (v, _) ->
+            let r = Option.get v.Variant.run in
+            r.encoder.set_offset offset;
+            (* The first segment holds the media from the run's start. *)
+            Segmenter.ensure_open ~start:0 r.segmenter)
+          delays)
+
+    (* At a stop, a run without media opens no segment, and a failure is
+       logged as the variants' own stops are. *)
+    method private settle_final_offset =
+      let media_time =
+        match (List.hd variants).run with
+          | Some r -> Segmenter.media_time r.segmenter
+          | None -> 0
+      in
+      if media_time > 0 then (
+        try self#settle_offset ~final:true ~force:true ()
+        with exn ->
+          self#log#important "Setting the initial offset failed: %s"
+            (Printexc.to_string exn))
+
     (* spec/operator.md §4, for one chunk. *)
     method private encode chunk =
       let length = Frame.position chunk in
+      if length > 0 && state <> `Running then self#begin_run;
       if length > 0 then (
-        if state <> `Running then self#begin_run;
         let time =
           match (List.hd variants).run with
             | Some r -> Segmenter.media_time r.segmenter
@@ -1040,14 +1099,19 @@ class output p =
           List.map
             (fun v ->
               let r = Option.get v.Variant.run in
-              Segmenter.ensure_open r.segmenter;
+              if offset_set then Segmenter.ensure_open r.segmenter;
               let boundary = Segmenter.request r.segmenter in
               if r.properties <> None then
                 r.encoder.split_encode ~boundary chunk
               else (
                 match r.encoder.init_encode ~boundary chunk with
                   | Encoder.Pending -> []
-                  | Encoder.Init ready -> self#apply_init v r ready))
+                  | Encoder.Init ready ->
+                      (* Output before the offset: a container restart
+                         wrote what it held. *)
+                      if (not offset_set) && ready.pieces <> [] then
+                        self#settle_offset ~force:true ();
+                      self#apply_init v r ready))
             variants
         in
         List.iter2
@@ -1064,7 +1128,11 @@ class output p =
                   r.last_tag <- Some time;
                   v.metadata <- `Sent m
               | _ -> ())
-          in_stream)
+          in_stream;
+        if not offset_set then
+          self#settle_offset
+            ~force:(time + length > Frame.main_of_seconds max_offset_wait)
+            ())
 
     method streams =
       List.map

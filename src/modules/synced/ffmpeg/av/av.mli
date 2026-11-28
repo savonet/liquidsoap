@@ -558,11 +558,12 @@ val set_output_metadata : output container -> (string * string) list -> unit
 val set_metadata : (_, _, _) stream -> (string * string) list -> unit
 
 (** [set_output_option output name value] sets an option of the muxer of
-    [output], looking it up in the muxer's private options and their children.
-    It is accepted while the output is open, before and after its header is
-    written, so that a muxer option can change between two packet writes: the
-    mpegts muxer writes its tables again before the next packet once
-    [mpegts_flags] is set to [+resend_headers].
+    [output], looking it up in the muxer's private options and their children,
+    then in the I/O context's options, then in the generic muxer options. It is
+    accepted while the output is open, before and after its header is written,
+    so that a muxer option can change between two packet writes: the mpegts
+    muxer writes its tables again before the next packet once [mpegts_flags] is
+    set to [+resend_headers].
 
     @raise Error with [`Option_not_found] when the muxer has no such option.
     @raise Error with the mapped FFmpeg code when the value is invalid. *)
