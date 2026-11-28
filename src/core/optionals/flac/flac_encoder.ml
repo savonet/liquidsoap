@@ -88,12 +88,22 @@ let writer flac { Encoder.capabilities; sink; initial_metadata; _ } =
     position := !position + Bytes.length chunk;
     Strings.Mutable.add_bytes buf chunk
   in
+  (* The fLaC header the library writes when created, until it is handed on. *)
+  let pending_header = ref None in
+  let take () =
+    let bytes = Strings.Mutable.flush buf in
+    match !pending_header with
+      | Some header ->
+          pending_header := None;
+          Strings.append header bytes
+      | None -> bytes
+  in
   let seek, tell =
     match sink.Encoder.seek with
       | Some seek when file_form ->
           ( Some
               (fun offset ->
-                sink.Encoder.write (Strings.Mutable.flush buf);
+                sink.Encoder.write (take ());
                 position := Int64.to_int offset;
                 seek !position),
             Some (fun () -> Int64.of_int !position) )
@@ -107,15 +117,7 @@ let writer flac { Encoder.capabilities; sink; initial_metadata; _ } =
   (* What the library writes when it is created: fLaC and its metadata
      blocks. *)
   let header = Strings.Mutable.flush buf in
-  let pending_header = ref (Some header) in
-  let take () =
-    let bytes = Strings.Mutable.flush buf in
-    match !pending_header with
-      | Some header ->
-          pending_header := None;
-          Strings.append header bytes
-      | None -> bytes
-  in
+  pending_header := Some header;
   (* Encodes samples at the stream's rate: those of a frame, and at the end
      those the rate converter still holds. *)
   let encode_converted b start len =
@@ -132,14 +134,13 @@ let writer flac { Encoder.capabilities; sink; initial_metadata; _ } =
     in
     encode_converted b start len
   in
-  let encode_drained () =
-    let tail = Audio_converter.Samplerate.drain samplerate_converter in
-    encode_converted tail 0 (Mm.Audio.length tail)
-  in
+  (* The drained samples stay in the library's output until [finish]: its seek
+     back to STREAMINFO writes everything pending first. *)
   let stop () =
-    let tail = encode_drained () in
+    let tail = Audio_converter.Samplerate.drain samplerate_converter in
+    if 0 < Mm.Audio.length tail then Flac.Encoder.process enc tail;
     Flac.Encoder.finish enc;
-    Strings.append tail (take ())
+    take ()
   in
   (* The library hands over whole frames: a call's output starts on one. *)
   Encoder.writer_of_encoder
