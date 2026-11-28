@@ -792,13 +792,14 @@ static int submit_held_packet(encoder_t *handler, ogg_stream_state *os,
 /* Submits the held packet and holds [data] in its place. */
 static int push_packet(encoder_t *handler, ogg_stream_state *os,
                        unsigned char *data, int bytes, int frame_size) {
-  int ret = submit_held_packet(handler, os, 0, handler->held_granulepos);
+  int submit_result =
+      submit_held_packet(handler, os, 0, handler->held_granulepos);
   handler->granulepos += frame_size * handler->samplerate_ratio;
   handler->packetno++;
   memcpy(handler->held_packet, data, bytes);
   handler->held_bytes = bytes;
   handler->held_granulepos = handler->granulepos;
-  return ret;
+  return submit_result;
 }
 
 CAMLprim value ocaml_opus_encoder_pre_skip(value _enc) {
