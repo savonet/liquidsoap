@@ -168,7 +168,7 @@ let stream_time st = float (Atomic.get st.ticks) *. st.frame_duration
 module Registry = struct
   let m = Mutex.create ()
 
-  (* Stopped top-level clocks, which the start pass examines. *)
+  (* Stopped top-level clocks. *)
   let waiting : (int, clock Weak.t) Hashtbl.t = Hashtbl.create 16
 
   (* Started top-level clocks, which this table keeps alive. *)
@@ -182,12 +182,44 @@ module Registry = struct
   let release_id identity id =
     if Hashtbl.find_opt ids id = Some identity then Hashtbl.remove ids id
 
-  let drain () =
+  let by_creation clocks =
+    List.sort (fun a b -> Int.compare a.identity b.identity) clocks
+
+  let weak c =
+    let weak = Weak.create 1 in
+    Weak.set weak 0 (Some c);
+    weak
+
+  (* Clocks the next start pass examines: those that joined [waiting] or got a
+     source since the last one, by identity. Reading a weak pointer during a
+     major collection marks what it reads, so a pass that read all of
+     [waiting] would keep every stopped clock alive. *)
+  let candidates : (int * clock Weak.t) list Atomic.t = Atomic.make []
+
+  let candidate c =
+    if not (Atomic.exchange c.start_candidate true) then
+      push candidates (c.identity, weak c)
+
+  (* By identity: a weak pointer still holds a clock while its finaliser
+     runs. *)
+  let prune_candidates dead =
+    let collected = Hashtbl.create (List.length dead) in
+    List.iter (fun (identity, _) -> Hashtbl.replace collected identity ()) dead;
     List.iter
-      (fun (identity, id) ->
-        Hashtbl.remove waiting identity;
-        Option.iter (release_id identity) id)
-      (Atomic.exchange dead [])
+      (fun ((identity, _) as entry) ->
+        if not (Hashtbl.mem collected identity) then push candidates entry)
+      (Atomic.exchange candidates [])
+
+  let drain () =
+    match Atomic.exchange dead [] with
+      | [] -> ()
+      | dead ->
+          List.iter
+            (fun (identity, id) ->
+              Hashtbl.remove waiting identity;
+              Option.iter (release_id identity) id)
+            dead;
+          prune_candidates dead
 
   (* Runs [fn] under the registry lock, on drained tables. *)
   let locked fn =
@@ -195,15 +227,27 @@ module Registry = struct
         drain ();
         fn ())
 
+  (* Under the lock, which a prune holds while the queue is out. A candidate
+     no longer in [waiting] started, merged away or got a parent. *)
+  let take_candidates () =
+    locked (fun () ->
+        List.sort_uniq
+          (fun a b -> Int.compare a.identity b.identity)
+          (List.filter_map
+             (fun (identity, weak) ->
+               let c = Weak.get weak 0 in
+               Option.iter (fun c -> Atomic.set c.start_candidate false) c;
+               if Hashtbl.mem waiting identity then c else None)
+             (Atomic.exchange candidates [])))
+
   (* Queues a clock's entries for removal when it is collected. *)
   let watch c = Gc.finalise (fun c -> push dead (c.identity, clock_id c)) c
 
   let wait c =
     locked (fun () ->
         Hashtbl.remove running c.identity;
-        let weak = Weak.create 1 in
-        Weak.set weak 0 (Some c);
-        Hashtbl.replace waiting c.identity weak)
+        Hashtbl.replace waiting c.identity (weak c));
+    candidate c
 
   let run c =
     locked (fun () ->
@@ -215,9 +259,6 @@ module Registry = struct
     locked (fun () ->
         Hashtbl.remove waiting c.identity;
         Hashtbl.remove running c.identity)
-
-  let by_creation clocks =
-    List.sort (fun a b -> Int.compare a.identity b.identity) clocks
 
   let waiting_clocks () =
     locked (fun () ->

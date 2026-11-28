@@ -148,6 +148,7 @@ let create ?(stack = []) ?on_error ?id ?(sync = `Automatic) ?parent ?owner () =
       subs = Atomic.make [];
       error_handlers = Atomic.make (Option.to_list on_error);
       ticking = Atomic.make false;
+      start_candidate = Atomic.make false;
       activated = Atomic.make 0;
       self = Atomic.make None;
     }

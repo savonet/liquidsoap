@@ -147,11 +147,11 @@ of waiting clocks.
 **Why it is hard.** The pass is on a path taken very often, so anything
 proportional to the number of idle clocks is paid constantly.
 
-**How to tell.** A start pass over N clocks that cannot start costs
-proportionally to N. With nothing waiting and nothing new it costs a constant.
+**How to tell.** A start pass after N clocks joined `waiting` examines N
+clocks. With nothing new it examines none, however many are waiting.
 
 **Rule.** [clock.md §6](clock.md#6-creation-and-start): the pass is linear in the
-waiting clocks and constant with none.
+clocks that changed since the previous one and constant with none.
 
 Trace: #5153.
 

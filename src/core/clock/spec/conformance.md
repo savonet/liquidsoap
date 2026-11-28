@@ -53,8 +53,9 @@ most checks free of animators and of real time.
   at shutdown.
 - A start scope whose function fails starts nothing. Binding: the state
   of the clocks it created.
-- K5: a start pass over N clocks that cannot start costs proportionally to N;
-  with nothing waiting, a constant. Binding: the count of clocks examined.
+- K5: a start pass examines the N clocks that joined `waiting` or got a
+  source since the previous pass, and none when nothing changed, however many
+  clocks are waiting. Binding: the count of clocks examined.
 - Clocks created and discarded without being started do not accumulate.
   Binding: registry size.
 

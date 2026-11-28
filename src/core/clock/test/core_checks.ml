@@ -111,15 +111,19 @@ let discarded_clocks count =
 
 let start_pass () =
   collect ();
-  let baseline = Clock.start_pass () in
+  ignore (Clock.start_pass ());
+  let registered () = List.length (Clock.clocks ()) in
+  let baseline = registered () in
   let held = List.init 100 (fun _ -> Clock.create ()) in
-  check "K5: a start pass examines each waiting clock once"
-    (Clock.start_pass () = baseline + 100);
+  check "K5: a start pass examines the clocks that joined waiting"
+    (Clock.start_pass () = 100);
+  check "K5: a start pass examines nothing when nothing changed"
+    (Clock.start_pass () = 0);
   ignore (Sys.opaque_identity held);
   discarded_clocks 1000;
   collect ();
   check "clocks created and discarded do not accumulate"
-    (Clock.start_pass () <= baseline + 100)
+    (registered () <= baseline + 100)
 
 let discarded_sources_return () =
   let clock = passive () in

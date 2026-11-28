@@ -118,7 +118,8 @@ val started : t -> bool
 (** [None] unless the clock is stopped. *)
 val stop_reason : t -> stop_reason option
 
-(** Starts every waiting clock that can start. Returns how many it examined. *)
+(** Starts the clocks that can start, among those that joined [waiting] or got a
+    source since the last pass. Returns how many it examined. *)
 val start_pass : unit -> int
 
 (** Runs the function, then a start pass unless it raised. *)
