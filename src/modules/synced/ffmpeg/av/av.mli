@@ -74,6 +74,11 @@ module Format : sig
   (** The descriptive name of an output format. *)
   val get_output_long_name : (output, _) format -> string
 
+  (** Whether the muxer writes through the output's I/O. A muxer that needs no
+      file (image2, segment, hls, tee, null) opens its own files from the
+      output's name. *)
+  val output_needs_file : (output, _) format -> bool
+
   (** [find_input_format name] is FFmpeg's input format of that short name, or
       [None] when there is none. The media parameter of the result is chosen by
       the caller and is not checked. *)

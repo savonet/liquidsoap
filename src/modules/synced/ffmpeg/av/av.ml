@@ -35,6 +35,9 @@ module Format = struct
   external get_output_long_name : (output, _) format -> string
     = "ocaml_av_output_format_long_name"
 
+  external output_needs_file : (output, _) format -> bool
+    = "ocaml_av_output_format_needs_file"
+
   external find_input_format : string -> (input, 'a) format option
     = "ocaml_av_find_input_format"
 

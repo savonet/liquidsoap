@@ -692,6 +692,11 @@ CAMLprim value ocaml_av_output_format_long_name(value _format) {
   CAMLreturn(copy_text(OutputFormat_val(_format)->long_name));
 }
 
+CAMLprim value ocaml_av_output_format_needs_file(value _format) {
+  CAMLparam1(_format);
+  CAMLreturn(Val_bool(!(OutputFormat_val(_format)->flags & AVFMT_NOFILE)));
+}
+
 CAMLprim value ocaml_av_find_input_format(value _name) {
   CAMLparam1(_name);
   const AVInputFormat *format = av_find_input_format(String_val(_name));

@@ -909,11 +909,28 @@ let () =
           (fun { Encoder.pos; name; capabilities; sink; initial_metadata } ->
             (* A file written from its first byte: the muxer writes and seeks
                in the sink itself, and completes its header at the end. *)
+            (* A muxer that needs no file (image2, segment, hls, tee) opens
+               its own files, from the output's file name. *)
+            let opens_its_files =
+              match format.F.format with
+                | Some short_name -> (
+                    match Av.Format.guess_output_format ~short_name () with
+                      | Some muxer -> not (Av.Format.output_needs_file muxer)
+                      | None -> false)
+                | None -> false
+            in
             let file =
               Encoder.file_form capabilities && sink.Encoder.seek <> None
             in
-            let direct = if file then Some sink else None in
-            let format = if file then format else fragmented format in
+            let direct =
+              if file && not opens_its_files then Some sink else None
+            in
+            let format =
+              match sink.Encoder.name with
+                | Some filename when opens_its_files ->
+                    { format with F.output = `Url filename }
+                | _ -> if file then format else fragmented format
+            in
             Encoder.writer_of_encoder
               (create ?direct ?filename:sink.Encoder.name ~pos ~name
                  initial_metadata format)
